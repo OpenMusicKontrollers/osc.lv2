@@ -71,7 +71,6 @@ typedef struct _LV2_OSC_Stream LV2_OSC_Stream;
 struct _LV2_OSC_Address {
 	socklen_t len;
 	union {
-		struct sockaddr in;
 		struct sockaddr_in in4;
 		struct sockaddr_in6 in6;
 	};
@@ -371,12 +370,13 @@ lv2_osc_stream_init(LV2_OSC_Stream *stream, const char *url,
 				}
 
 				stream->self.len = res->ai_addrlen;
-				stream->self.in = *res->ai_addr;
+				memcpy(&stream->self.in4, res->ai_addr, res->ai_addrlen);
 				stream->self.in4.sin_addr.s_addr = htonl(INADDR_ANY);
 
 				freeaddrinfo(res);
 
-				if(bind(stream->sock, &stream->self.in, stream->self.len) != 0)
+				if(bind(stream->sock, (struct sockaddr *)&stream->self.in4,
+					stream->self.len) != 0)
 				{
 					ev = LV2_OSC_STREAM_ERRNO(ev, errno);
 					goto fail;
@@ -389,7 +389,8 @@ lv2_osc_stream_init(LV2_OSC_Stream *stream, const char *url,
 				stream->self.in4.sin_port = htons(0);
 				stream->self.in4.sin_addr.s_addr = htonl(INADDR_ANY);
 
-				if(bind(stream->sock, &stream->self.in, stream->self.len) != 0)
+				if(bind(stream->sock, (struct sockaddr *)&stream->self.in4,
+					stream->self.len) != 0)
 				{
 					ev = LV2_OSC_STREAM_ERRNO(ev, errno);
 					goto fail;
@@ -415,7 +416,7 @@ lv2_osc_stream_init(LV2_OSC_Stream *stream, const char *url,
 				}
 
 				stream->peer.len = res->ai_addrlen;
-				stream->peer.in = *res->ai_addr;
+				memcpy(&stream->peer.in4, res->ai_addr, res->ai_addrlen);
 
 				freeaddrinfo(res);
 			}
@@ -461,7 +462,8 @@ lv2_osc_stream_init(LV2_OSC_Stream *stream, const char *url,
 				}
 				else // client
 				{
-					if(connect(stream->sock, &stream->peer.in, stream->peer.len) == 0)
+					if(connect(stream->sock, (struct sockaddr *)&stream->peer.in4,
+						stream->peer.len) == 0)
 					{
 						stream->connected = true;
 					}
@@ -497,7 +499,7 @@ lv2_osc_stream_init(LV2_OSC_Stream *stream, const char *url,
 				}
 
 				stream->self.len = res->ai_addrlen;
-				stream->self.in = *res->ai_addr;
+				memcpy(&stream->self.in6, res->ai_addr, res->ai_addrlen);
 				stream->self.in6.sin6_addr = in6addr_any;
 				if(iface)
 				{
@@ -506,7 +508,8 @@ lv2_osc_stream_init(LV2_OSC_Stream *stream, const char *url,
 
 				freeaddrinfo(res);
 
-				if(bind(stream->sock, &stream->self.in, stream->self.len) != 0)
+				if(bind(stream->sock, (struct sockaddr *)&stream->self.in6,
+					stream->self.len) != 0)
 				{
 					ev = LV2_OSC_STREAM_ERRNO(ev, errno);
 					goto fail;
@@ -523,7 +526,8 @@ lv2_osc_stream_init(LV2_OSC_Stream *stream, const char *url,
 					stream->self.in6.sin6_scope_id = if_nametoindex(iface);
 				}
 
-				if(bind(stream->sock, &stream->self.in, stream->self.len) != 0)
+				if(bind(stream->sock, (struct sockaddr *)&stream->self.in6,
+					stream->self.len) != 0)
 				{
 					ev = LV2_OSC_STREAM_ERRNO(ev, errno);
 					goto fail;
@@ -547,8 +551,10 @@ lv2_osc_stream_init(LV2_OSC_Stream *stream, const char *url,
 					ev = LV2_OSC_STREAM_ERRNO(ev, EPROTOTYPE);
 					goto fail;
 				}
+
 				stream->peer.len = res->ai_addrlen;
-				stream->peer.in = *res->ai_addr;
+				memcpy(&stream->peer.in6, res->ai_addr, res->ai_addrlen);
+
 				if(iface)
 				{
 					stream->peer.in6.sin6_scope_id = if_nametoindex(iface);
@@ -589,7 +595,8 @@ lv2_osc_stream_init(LV2_OSC_Stream *stream, const char *url,
 				}
 				else // client
 				{
-					if(connect(stream->sock, &stream->peer.in, stream->peer.len) == 0)
+					if(connect(stream->sock, (struct sockaddr *)&stream->peer.in6,
+						stream->peer.len) == 0)
 					{
 						stream->connected = true;
 					}
@@ -743,7 +750,7 @@ _lv2_osc_stream_run_udp(LV2_OSC_Stream *stream)
 		while( (buf = stream->driv->read_req(stream->data, &tosend)) )
 		{
 			const ssize_t sent = sendto(stream->sock, buf, tosend, 0,
-				&stream->peer.in, stream->peer.len);
+				(struct sockaddr *)&stream->peer.in6, stream->peer.len);
 
 			if(sent == -1)
 			{
@@ -775,11 +782,12 @@ _lv2_osc_stream_run_udp(LV2_OSC_Stream *stream)
 		while( (buf = stream->driv->write_req(stream->data,
 			LV2_OSC_STREAM_REQBUF, &max_len)) )
 		{
-			struct sockaddr in;
+			struct sockaddr_in6 in;
 			socklen_t in_len = sizeof(in);
 
+			memset(&in, 0, in_len);
 			const ssize_t recvd = recvfrom(stream->sock, buf, max_len, 0,
-				&in, &in_len);
+				(struct sockaddr *)&in, &in_len);
 
 			if(recvd == -1)
 			{
@@ -799,7 +807,7 @@ _lv2_osc_stream_run_udp(LV2_OSC_Stream *stream)
 			}
 
 			stream->peer.len = in_len;
-			stream->peer.in = in;
+			memcpy(&stream->peer.in6, &in, in_len);
 
 			stream->driv->write_adv(stream->data, recvd);
 			ev |= LV2_OSC_RECV;
@@ -819,8 +827,9 @@ _lv2_osc_stream_run_tcp(LV2_OSC_Stream *stream)
 	{
 		if(stream->server)
 		{
-			stream->peer.len = sizeof(stream->peer.in);
-			stream->fd = accept(stream->sock, &stream->peer.in, &stream->peer.len);
+			stream->peer.len = sizeof(stream->peer.in6);
+			stream->fd = accept(stream->sock, (struct sockaddr *)&stream->peer.in6,
+				&stream->peer.len);
 
 			if(stream->fd >= 0)
 			{
@@ -862,7 +871,8 @@ _lv2_osc_stream_run_tcp(LV2_OSC_Stream *stream)
 		}
 		else
 		{
-			if(connect(stream->sock, &stream->peer.in, stream->peer.len) == 0)
+			if(connect(stream->sock, (struct sockaddr *)&stream->peer.in6,
+				stream->peer.len) == 0)
 			{
 				stream->connected = true; // orderly (re)connect
 			}
