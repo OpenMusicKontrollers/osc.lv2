@@ -13,13 +13,13 @@ stages:
 .build_template: &build_definition
   <<: *common_definition
   script:
-    - meson -Db_lto=false --cross-file "${CI_BUILD_NAME}" build
+    - meson --cross-file "${CI_BUILD_NAME}" build
     - ninja -C build
 
 .test_template: &test_definition
   <<: *common_definition
   script:
-    - meson -Db_lto=false --cross-file "${CI_BUILD_NAME}" build
+    - meson --cross-file "${CI_BUILD_NAME}" build
     - ninja -C build
     - cd build
     - meson test --verbose --wrap "${CI_BUILD_NAME}.wrap"
