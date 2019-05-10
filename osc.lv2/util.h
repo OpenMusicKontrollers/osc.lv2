@@ -45,6 +45,15 @@ extern "C" {
 typedef void (*LV2_OSC_Method)(const char *path,
 	const LV2_Atom_Tuple *arguments, void *data);
 
+typedef struct _LV2_OSC_Hook LV2_OSC_Hook;
+
+struct _LV2_OSC_Hook {
+	const char *name;
+	const LV2_OSC_Hook *hooks;
+	LV2_OSC_Method method;
+	void *data;
+};
+
 // characters not allowed in OSC path string
 static const char invalid_path_chars [] = {
 	' ', '#',
@@ -59,6 +68,63 @@ static const char valid_format_chars [] = {
 	LV2_OSC_SYMBOL, LV2_OSC_MIDI,
 	'\0'
 };
+
+/**
+   TODO
+*/
+static void
+lv2_osc_hooks(const char *path, const LV2_Atom_Tuple *arguments, void *data)
+{
+	const LV2_OSC_Hook *hooks = data;
+
+	const char *ptr;
+	const char *from = NULL;
+	for(ptr = path; *ptr; ptr++)
+	{
+		if(*ptr != '/')
+		{
+			continue;
+		}
+
+		if(from)
+		{
+			const size_t len = ptr - from;
+
+			for(const LV2_OSC_Hook *hook = hooks; hook && hook->name; hook++)
+			{
+				if(!strncmp(from, hook->name, len))
+				{
+					hooks = hook->hooks ? hook->hooks : hook;
+					break;
+				}
+			}
+		}
+
+		from = ++ptr;
+	}
+
+	const LV2_OSC_Hook *dest = NULL;
+
+	if(from)
+	{
+		const size_t len = ptr - from;
+
+		for(const LV2_OSC_Hook *hook = hooks; hook && hook->name; hook++)
+		{
+			if(!strncmp(from, hook->name, len))
+			{
+				hooks = hook->hooks ? hook->hooks : hook;
+				dest = hooks;
+				break;
+			}
+		}
+	}
+
+	if(dest && dest->method)
+	{
+		dest->method(path, arguments, dest->data);
+	}
+}
 
 /**
    TODO

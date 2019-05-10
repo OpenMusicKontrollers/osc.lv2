@@ -931,6 +931,136 @@ static const pair_t pairs [] = {
 };
 #endif
 
+static void
+_one(const char *path, const LV2_Atom_Tuple *arguments __attribute__((unused)),
+	void *data)
+{
+	bool *flag = data;
+	*flag = true;
+
+	assert(!strcmp(path, "/sub/one"));
+}
+
+static void
+_two(const char *path, const LV2_Atom_Tuple *arguments __attribute__((unused)),
+	void *data)
+{
+	bool *flag = data;
+	*flag = true;
+
+	assert(!strcmp(path, "/sub/two"));
+}
+
+static void
+_foo(const char *path, const LV2_Atom_Tuple *arguments __attribute__((unused)),
+	void *data)
+{
+	bool *flag = data;
+	*flag = true;
+
+	assert(!strcmp(path, "/foo"));
+}
+
+static void
+_bar(const char *path, const LV2_Atom_Tuple *arguments __attribute__((unused)),
+	void *data)
+{
+	bool *flag = data;
+	*flag = true;
+
+	assert(!strcmp(path, "/bar"));
+}
+
+static bool foo_sub_one = false;
+static bool foo_sub_two = false;
+static bool foo = false;
+static bool bar = false;
+
+static LV2_OSC_Hook sub [] = {
+	{ .name = "one", .method = _one, .data = &foo_sub_one },
+	{ .name = "two", .method = _two, .data = &foo_sub_two },
+	{ .name = NULL }
+};
+
+static LV2_OSC_Hook root [] = {
+	{ .name = "foo", .method = _foo, .data = &foo },
+	{ .name = "bar", .method = _bar, .data = &bar },
+	{ .name = "sub", .hooks = sub },
+	{ .name = NULL }
+};
+
+static bool
+_run_test_hooks_internal(const char *path)
+{
+	LV2_OSC_URID osc_urid;
+	LV2_Atom_Forge forge;
+
+	lv2_osc_urid_init(&osc_urid, &map);
+	lv2_atom_forge_init(&forge, &map);
+
+	lv2_atom_forge_set_buffer(&forge, buf0, BUF_SIZE);
+	assert(lv2_osc_forge_message_vararg(&forge, &osc_urid, path, ""));
+
+	foo_sub_one = foo_sub_two = foo = bar = false;
+
+	const LV2_Atom_Object *obj = (const LV2_Atom_Object *)buf0;;
+	return lv2_osc_unroll(&osc_urid, obj, lv2_osc_hooks, root);
+}
+
+static int
+_run_test_hooks()
+{
+	{
+		assert(_run_test_hooks_internal("/nil") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == false);
+		assert(foo_sub_two == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/foo") == true);
+		assert(foo == true);
+		assert(bar == false);
+		assert(foo_sub_one == false);
+		assert(foo_sub_two == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/bar") == true);
+		assert(foo == false);
+		assert(bar == true);
+		assert(foo_sub_one == false);
+		assert(foo_sub_two == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/sub/nil") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == false);
+		assert(foo_sub_two == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/sub/one") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == true);
+		assert(foo_sub_two == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/sub/two") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == false);
+		assert(foo_sub_two == true);
+	}
+
+	return 0;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -939,6 +1069,9 @@ main(int argc, char **argv)
 
 	fprintf(stdout, "running main tests:\n");
 	assert(_run_tests() == 0);
+
+	fprintf(stdout, "running hook tests:\n");
+	assert(_run_test_hooks() == 0);
 
 #if !defined(_WIN32)
 	for(const pair_t *pair = pairs; pair->server; pair++)
