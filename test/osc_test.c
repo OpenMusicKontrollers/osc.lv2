@@ -972,13 +972,14 @@ _bar(const char *path, const LV2_Atom_Tuple *arguments __attribute__((unused)),
 }
 
 static bool foo_sub_one = false;
-static bool foo_sub_two = false;
+static bool foo_sub_two [2] = { false, false };
 static bool foo = false;
 static bool bar = false;
 
 static LV2_OSC_Hook sub [] = {
 	{ .name = "one", .method = _one, .data = &foo_sub_one },
-	{ .name = "two", .method = _two, .data = &foo_sub_two },
+	{ .name = "two", .method = _two, .data = &foo_sub_two[0] },
+	{ .name = "two", .method = _two, .data = &foo_sub_two[1] },
 	{ .name = NULL }
 };
 
@@ -1001,7 +1002,7 @@ _run_test_hooks_internal(const char *path)
 	lv2_atom_forge_set_buffer(&forge, buf0, BUF_SIZE);
 	assert(lv2_osc_forge_message_vararg(&forge, &osc_urid, path, ""));
 
-	foo_sub_one = foo_sub_two = foo = bar = false;
+	foo_sub_one = foo_sub_two[0] = foo_sub_two[1] = foo = bar = false;
 
 	const LV2_Atom_Object *obj = (const LV2_Atom_Object *)buf0;;
 	return lv2_osc_unroll(&osc_urid, obj, lv2_osc_hooks, root);
@@ -1015,7 +1016,8 @@ _run_test_hooks()
 		assert(foo == false);
 		assert(bar == false);
 		assert(foo_sub_one == false);
-		assert(foo_sub_two == false);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
 	}
 
 	{
@@ -1023,7 +1025,8 @@ _run_test_hooks()
 		assert(foo == true);
 		assert(bar == false);
 		assert(foo_sub_one == false);
-		assert(foo_sub_two == false);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
 	}
 
 	{
@@ -1031,7 +1034,8 @@ _run_test_hooks()
 		assert(foo == false);
 		assert(bar == true);
 		assert(foo_sub_one == false);
-		assert(foo_sub_two == false);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
 	}
 
 	{
@@ -1039,7 +1043,8 @@ _run_test_hooks()
 		assert(foo == false);
 		assert(bar == false);
 		assert(foo_sub_one == false);
-		assert(foo_sub_two == false);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
 	}
 
 	{
@@ -1047,7 +1052,8 @@ _run_test_hooks()
 		assert(foo == false);
 		assert(bar == false);
 		assert(foo_sub_one == true);
-		assert(foo_sub_two == false);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
 	}
 
 	{
@@ -1055,7 +1061,8 @@ _run_test_hooks()
 		assert(foo == false);
 		assert(bar == false);
 		assert(foo_sub_one == false);
-		assert(foo_sub_two == true);
+		assert(foo_sub_two[0] == true);
+		assert(foo_sub_two[1] == true);
 	}
 
 	return 0;

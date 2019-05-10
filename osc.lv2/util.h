@@ -69,6 +69,34 @@ static const char valid_format_chars [] = {
 	'\0'
 };
 
+static void
+_lv2_osc_hooks_internal(const char *path, const char *from,
+	const LV2_Atom_Tuple *arguments, const LV2_OSC_Hook *hooks)
+{
+	const char *ptr = strchr(from, '/');
+
+	const size_t len = ptr
+		? (size_t)(ptr - from)
+		: strlen(from);
+
+	for(const LV2_OSC_Hook *hook = hooks; hook && hook->name; hook++)
+	{
+		if(!strncmp(from, hook->name, len))
+		{
+			if(hook->hooks)
+			{
+				from = &ptr[1];
+
+				_lv2_osc_hooks_internal(path, from, arguments, hook->hooks);
+			}
+			else if(hook->method)
+			{
+				hook->method(path, arguments, hook->data);
+			}
+		}
+	}
+}
+
 /**
    TODO
 */
@@ -76,54 +104,9 @@ static void
 lv2_osc_hooks(const char *path, const LV2_Atom_Tuple *arguments, void *data)
 {
 	const LV2_OSC_Hook *hooks = data;
+	const char *from = &path[1];
 
-	const char *ptr;
-	const char *from = NULL;
-	for(ptr = path; *ptr; ptr++)
-	{
-		if(*ptr != '/')
-		{
-			continue;
-		}
-
-		if(from)
-		{
-			const size_t len = ptr - from;
-
-			for(const LV2_OSC_Hook *hook = hooks; hook && hook->name; hook++)
-			{
-				if(!strncmp(from, hook->name, len))
-				{
-					hooks = hook->hooks ? hook->hooks : hook;
-					break;
-				}
-			}
-		}
-
-		from = ++ptr;
-	}
-
-	const LV2_OSC_Hook *dest = NULL;
-
-	if(from)
-	{
-		const size_t len = ptr - from;
-
-		for(const LV2_OSC_Hook *hook = hooks; hook && hook->name; hook++)
-		{
-			if(!strncmp(from, hook->name, len))
-			{
-				hooks = hook->hooks ? hook->hooks : hook;
-				dest = hooks;
-				break;
-			}
-		}
-	}
-
-	if(dest && dest->method)
-	{
-		dest->method(path, arguments, dest->data);
-	}
+	_lv2_osc_hooks_internal(path, from, arguments, hooks);
 }
 
 /**
