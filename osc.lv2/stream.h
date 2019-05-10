@@ -665,7 +665,7 @@ lv2_osc_stream_init(LV2_OSC_Stream *stream, const char *url,
 {
 	memset(stream, 0x0, sizeof(LV2_OSC_Stream));
 
-	strncpy(stream->url, url, sizeof(stream->url));
+	strncpy(stream->url, url, sizeof(stream->url) - 1);
 	stream->driv = driv;
 	stream->data = data;
 	stream->sock = -1;
