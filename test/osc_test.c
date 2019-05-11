@@ -938,7 +938,12 @@ _one(const char *path, const LV2_Atom_Tuple *arguments __attribute__((unused)),
 	bool *flag = data;
 	*flag = true;
 
-	assert(!strcmp(path, "/sub/one"));
+	assert(!strcmp(path, "/sub/one")
+		|| !strcmp(path, "/*/one")
+		|| !strcmp(path, "/s*/one")
+		|| !strcmp(path, "/su*/one")
+		|| !strcmp(path, "/sub*/one")
+		|| !strcmp(path, "/sub/*"));
 }
 
 static void
@@ -948,7 +953,7 @@ _two(const char *path, const LV2_Atom_Tuple *arguments __attribute__((unused)),
 	bool *flag = data;
 	*flag = true;
 
-	assert(!strcmp(path, "/sub/two"));
+	assert(!strcmp(path, "/sub/two") || !strcmp(path, "/sub/*"));
 }
 
 static void
@@ -1063,6 +1068,51 @@ _run_test_hooks()
 		assert(foo_sub_one == false);
 		assert(foo_sub_two[0] == true);
 		assert(foo_sub_two[1] == true);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/sub/*") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == true);
+		assert(foo_sub_two[0] == true);
+		assert(foo_sub_two[1] == true);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/*/one") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == true);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/s*/one") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == true);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/su*/one") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == true);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/sub*/one") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == true);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
 	}
 
 	return 0;

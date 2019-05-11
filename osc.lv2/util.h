@@ -69,6 +69,21 @@ static const char valid_format_chars [] = {
 	'\0'
 };
 
+static bool
+_lv2_osc_pattern_match(const char *from, const char *name, size_t len)
+{
+	const char *ast = strpbrk(from, "/*");
+	if(ast && (*ast == '*') )
+	{
+		len = ast - from;
+	}
+	//FIXME handle '?[]{}'
+
+	return strncmp(from, name, len) == 0
+		? true
+		: false;
+}
+
 static void
 _lv2_osc_hooks_internal(const char *path, const char *from,
 	const LV2_Atom_Tuple *arguments, const LV2_OSC_Hook *hooks)
@@ -81,15 +96,15 @@ _lv2_osc_hooks_internal(const char *path, const char *from,
 
 	for(const LV2_OSC_Hook *hook = hooks; hook && hook->name; hook++)
 	{
-		if(!strncmp(from, hook->name, len))
+		if(_lv2_osc_pattern_match(from, hook->name, len))
 		{
-			if(hook->hooks)
+			if(hook->hooks && ptr)
 			{
 				from = &ptr[1];
 
 				_lv2_osc_hooks_internal(path, from, arguments, hook->hooks);
 			}
-			else if(hook->method)
+			else if(hook->method && !ptr)
 			{
 				hook->method(path, arguments, hook->data);
 			}
