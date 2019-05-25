@@ -1119,10 +1119,9 @@ _run_test_hooks()
 }
 
 int
-main(int argc, char **argv)
+main(int argc __attribute__((unused)), char **argv __attribute__((unused)))
 {
-	(void)argc;
-	(void)argv;
+	(void)lv2_osc_stream_pollin; //FIXME
 
 	fprintf(stdout, "running main tests:\n");
 	assert(_run_tests() == 0);

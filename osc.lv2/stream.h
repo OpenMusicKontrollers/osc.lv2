@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
+#include <poll.h>
 
 #include <osc.lv2/osc.h>
 
@@ -1370,6 +1371,37 @@ lv2_osc_stream_run(LV2_OSC_Stream *stream)
 	}
 
 	return ev;
+}
+
+static LV2_OSC_Enum
+lv2_osc_stream_pollin(LV2_OSC_Stream *stream, int timeout_ms)
+{
+	struct pollfd fds [2] = {
+		[0] = {
+			.fd = stream->sock,
+			.events = POLLIN,
+			.revents = 0
+		},
+		[1] = {
+			.fd = stream->fd,
+			.events = POLLIN,
+			.revents = 0
+		}
+	};
+
+	const int res = poll(fds, 2, timeout_ms);
+	if(res < 0)
+	{
+		return LV2_OSC_STREAM_ERRNO(LV2_OSC_NONE, errno);
+	}
+
+#if 0
+	fprintf(stderr, "++ %i: %i %i %i %i\n", res,
+		fds[0].fd, (int)fds[0].revents,
+		fds[1].fd, (int)fds[1].revents);
+#endif
+
+	return lv2_osc_stream_run(stream);
 }
 
 #ifdef __cplusplus
