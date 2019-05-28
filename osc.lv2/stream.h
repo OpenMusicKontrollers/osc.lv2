@@ -19,6 +19,7 @@
 #define LV2_OSC_STREAM_H
 
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 #if !defined(_WIN32)
 #	include <arpa/inet.h>
