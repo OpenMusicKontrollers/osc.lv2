@@ -23,6 +23,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <fnmatch.h>
 
 #include <osc.lv2/osc.h>
 
@@ -72,16 +73,63 @@ static const char valid_format_chars [] = {
 static bool
 _lv2_osc_pattern_match(const char *from, const char *name, size_t len)
 {
-	const char *ast = strpbrk(from, "/*");
-	if(ast && (*ast == '*') )
-	{
-		len = ast - from;
-	}
-	//FIXME handle '?[]{}'
+	size_t nbrace = 0;
 
-	return strncmp(from, name, len) == 0
-		? true
-		: false;
+	// count opening curly braces
+	for(size_t i = 0; i < len; i++)
+	{
+		if(from[i] == '{')
+		{
+			nbrace++;
+		}
+	}
+
+	// allocate temporary pattern buffer
+	char *pattern = alloca(len + nbrace + 1);
+
+	if(!pattern)
+	{
+		return false;
+	}
+
+	// convert {x,y} to @(x|y) for extended fnmatch
+	if(nbrace)
+	{
+		char *ptr = pattern;
+
+		for(size_t i = 0; i < len; i++)
+		{
+			switch(from[i])
+			{
+				case '{':
+				{
+					*ptr++ = '@';
+					*ptr++ = '(';
+				} break;
+				case ',':
+				{
+					*ptr++ = '|';
+				} break;
+				case '}':
+				{
+					*ptr++ = ')';
+				} break;
+				default:
+				{
+					*ptr++ = from[i];
+				} break;
+			}
+		}
+	}
+	else
+	{
+		memcpy(pattern, from, len);
+	}
+
+	// terminate pattern string with null terminator
+	pattern[len + nbrace] = '\0';
+
+	return fnmatch(pattern, name, FNM_NOESCAPE | FNM_EXTMATCH) == 0 ? true : false;
 }
 
 static void

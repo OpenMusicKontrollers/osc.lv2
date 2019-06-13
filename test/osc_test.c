@@ -943,7 +943,16 @@ _one(const char *path, const LV2_Atom_Tuple *arguments __attribute__((unused)),
 		|| !strcmp(path, "/s*/one")
 		|| !strcmp(path, "/su*/one")
 		|| !strcmp(path, "/sub*/one")
-		|| !strcmp(path, "/sub/*"));
+		|| !strcmp(path, "/sub/*")
+		|| !strcmp(path, "/*sub/one")
+		|| !strcmp(path, "/*s*u*b*/one")
+		|| !strcmp(path, "/su[ab]/one")
+		|| !strcmp(path, "/su[a-b]/[!a-np-z]ne")
+		|| !strcmp(path, "/su[a-b]/one")
+		|| !strcmp(path, "/s?b/?ne")
+		|| !strcmp(path, "/s?*/?ne")
+		|| !strcmp(path, "/s?*/*?e")
+		|| !strcmp(path, "/sub/{one,two}"));
 }
 
 static void
@@ -953,7 +962,9 @@ _two(const char *path, const LV2_Atom_Tuple *arguments __attribute__((unused)),
 	bool *flag = data;
 	*flag = true;
 
-	assert(!strcmp(path, "/sub/two") || !strcmp(path, "/sub/*"));
+	assert(!strcmp(path, "/sub/two")
+		|| !strcmp(path, "/sub/*")
+		|| !strcmp(path, "/sub/{one,two}"));
 }
 
 static void
@@ -963,7 +974,8 @@ _foo(const char *path, const LV2_Atom_Tuple *arguments __attribute__((unused)),
 	bool *flag = data;
 	*flag = true;
 
-	assert(!strcmp(path, "/foo"));
+	assert(!strcmp(path, "/foo")
+		|| !strcmp(path, "/{foo,bar}"));
 }
 
 static void
@@ -973,7 +985,8 @@ _bar(const char *path, const LV2_Atom_Tuple *arguments __attribute__((unused)),
 	bool *flag = data;
 	*flag = true;
 
-	assert(!strcmp(path, "/bar"));
+	assert(!strcmp(path, "/bar")
+		|| !strcmp(path, "/{foo,bar}"));
 }
 
 static bool foo_sub_one = false;
@@ -1113,6 +1126,87 @@ _run_test_hooks()
 		assert(foo_sub_one == true);
 		assert(foo_sub_two[0] == false);
 		assert(foo_sub_two[1] == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/*sub/one") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == true);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/*s*u*b*/one") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == true);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/su[ab]/one") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == true);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/su[a-b]/[!a-np-z]ne") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == true);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/su[!a-b]/one") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == false);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/s?b/?ne") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == true);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/s?*/*?e") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == true);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/{foo,bar}") == true);
+		assert(foo == true);
+		assert(bar == true);
+		assert(foo_sub_one == false);
+		assert(foo_sub_two[0] == false);
+		assert(foo_sub_two[1] == false);
+	}
+
+	{
+		assert(_run_test_hooks_internal("/sub/{one,two}") == true);
+		assert(foo == false);
+		assert(bar == false);
+		assert(foo_sub_one == true);
+		assert(foo_sub_two[0] == true);
+		assert(foo_sub_two[1] == true);
 	}
 
 	return 0;
