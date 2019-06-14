@@ -71,7 +71,7 @@ static const char valid_format_chars [] = {
 };
 
 static bool
-_lv2_osc_pattern_match(const char *from, const char *name, size_t len)
+lv2_osc_pattern_match(const char *from, const char *name, size_t len)
 {
 	size_t nbrace = 0;
 
@@ -144,7 +144,7 @@ _lv2_osc_hooks_internal(const char *path, const char *from,
 
 	for(const LV2_OSC_Hook *hook = hooks; hook && hook->name; hook++)
 	{
-		if(_lv2_osc_pattern_match(from, hook->name, len))
+		if(lv2_osc_pattern_match(from, hook->name, len))
 		{
 			if(hook->hooks && ptr)
 			{
