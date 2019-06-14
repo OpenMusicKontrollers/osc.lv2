@@ -1227,6 +1227,8 @@ main(int argc __attribute__((unused)), char **argv __attribute__((unused)))
 #if !defined(_WIN32)
 	fprintf(stdout, "running hook tests:\n");
 	assert(_run_test_hooks() == 0);
+#else
+	(void)lv2_osc_hooks; //FIXME
 #endif
 
 #if !defined(_WIN32)
