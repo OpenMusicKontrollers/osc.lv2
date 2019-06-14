@@ -35,14 +35,13 @@ typedef struct _LV2_OSC_Tree LV2_OSC_Tree;
 typedef struct _LV2_OSC_Reader LV2_OSC_Reader;
 typedef struct _LV2_OSC_Item LV2_OSC_Item;
 typedef struct _LV2_OSC_Arg LV2_OSC_Arg;
-typedef void (*LV2_OSC_Branch)(const char *path, LV2_OSC_Reader *reader,
-	LV2_OSC_Arg *arg, void *data);
+typedef void (*LV2_OSC_Branch)(LV2_OSC_Reader *reader, LV2_OSC_Arg *arg,
+	const LV2_OSC_Tree *tree, void *data);
 
 struct _LV2_OSC_Tree {
 	const char *name;
 	const LV2_OSC_Tree *trees;
 	LV2_OSC_Branch branch;
-	void *data;
 };
 
 struct _LV2_OSC_Reader {
@@ -578,7 +577,7 @@ lv2_osc_reader_is_message(LV2_OSC_Reader *reader)
 
 static inline void
 _lv2_osc_trees_internal(LV2_OSC_Reader *reader, const char *path, const char *from,
-	LV2_OSC_Arg *arg, const LV2_OSC_Tree *trees)
+	LV2_OSC_Arg *arg, const LV2_OSC_Tree *trees, void *data)
 {
 	const char *ptr = strchr(from, '/');
 
@@ -592,27 +591,32 @@ _lv2_osc_trees_internal(LV2_OSC_Reader *reader, const char *path, const char *fr
 		{
 			if(tree->trees && ptr)
 			{
-				from = &ptr[1];
+				if(tree->branch)
+				{
+					LV2_OSC_Reader reader_clone = *reader;
+					tree->branch(&reader_clone, arg, tree, data);
+				}
 
-				_lv2_osc_trees_internal(reader, path, from, arg, tree->trees);
+				_lv2_osc_trees_internal(reader, path, &ptr[1], arg, tree->trees, data);
 			}
 			else if(tree->branch && !ptr)
 			{
 				LV2_OSC_Reader reader_clone = *reader;
-				tree->branch(path, &reader_clone, arg, tree->data);
+				tree->branch(&reader_clone, arg, tree, data);
 			}
 		}
 	}
 }
 
 static inline void
-lv2_osc_reader_match(LV2_OSC_Reader *reader, size_t len, const LV2_OSC_Tree *trees)
+lv2_osc_reader_match(LV2_OSC_Reader *reader, size_t len,
+	const LV2_OSC_Tree *trees, void *data)
 {
 	LV2_OSC_Arg *arg = OSC_READER_MESSAGE_BEGIN(reader, len);
 	const char *path = arg->path;
 	const char *from = &path[1];
 
-	_lv2_osc_trees_internal(reader, path, from, arg, trees);
+	_lv2_osc_trees_internal(reader, path, from, arg, trees, data);
 }
 
 #ifdef __cplusplus

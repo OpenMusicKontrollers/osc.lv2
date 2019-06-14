@@ -942,6 +942,11 @@ _one(const char *path, unsigned *flag)
 {
 	*flag += 1;
 
+	if(!path)
+	{
+		return;
+	}
+
 	assert(!strcmp(path, "/sub/one")
 		|| !strcmp(path, "/*/one")
 		|| !strcmp(path, "/s*/one")
@@ -964,6 +969,11 @@ _two(const char *path, unsigned *flag)
 {
 	*flag += 1;
 
+	if(!path)
+	{
+		return;
+	}
+
 	assert(!strcmp(path, "/sub/two")
 		|| !strcmp(path, "/sub/*")
 		|| !strcmp(path, "/sub/{one,two}"));
@@ -974,6 +984,11 @@ _foo(const char *path, unsigned *flag)
 {
 	*flag += 1;
 
+	if(!path)
+	{
+		return;
+	}
+
 	assert(!strcmp(path, "/foo")
 		|| !strcmp(path, "/{foo,bar}"));
 }
@@ -982,6 +997,11 @@ static void
 _bar(const char *path, unsigned *flag)
 {
 	*flag += 1;
+
+	if(!path)
+	{
+		return;
+	}
 
 	assert(!strcmp(path, "/bar")
 		|| !strcmp(path, "/{foo,bar}"));
@@ -1029,44 +1049,56 @@ static LV2_OSC_Hook hook_root [] = {
 	{ .name = NULL }
 };
 
+static LV2_OSC_Tree tree_sub [4];
+
 static void
-_branch_one( const char *path, LV2_OSC_Reader *reader __attribute__((unused)),
-	LV2_OSC_Arg *arg __attribute__((unused)), void *data)
+_branch_one(LV2_OSC_Reader *reader __attribute__((unused)),
+	LV2_OSC_Arg *arg __attribute__((unused)),
+	const LV2_OSC_Tree *tree __attribute__((unused)),
+	void *data __attribute__((unused)))
 {
-	_one(path, data);
+	_one(NULL, &foo_sub_one);
 }
 
 static void
-_branch_two( const char *path, LV2_OSC_Reader *reader __attribute__((unused)),
-	LV2_OSC_Arg *arg __attribute__((unused)), void *data)
+_branch_two(LV2_OSC_Reader *reader __attribute__((unused)),
+	LV2_OSC_Arg *arg __attribute__((unused)),
+	const LV2_OSC_Tree *tree __attribute__((unused)),
+	void *data __attribute__((unused)))
 {
-	_two(path, data);
+	const size_t idx = tree - &tree_sub[1];
+
+	_two(NULL, &foo_sub_two[idx]);
 }
 
 static void
-_branch_foo( const char *path, LV2_OSC_Reader *reader __attribute__((unused)),
-	LV2_OSC_Arg *arg __attribute__((unused)), void *data)
+_branch_foo(LV2_OSC_Reader *reader __attribute__((unused)),
+	LV2_OSC_Arg *arg __attribute__((unused)),
+	const LV2_OSC_Tree *tree __attribute__((unused)),
+	void *data __attribute__((unused)))
 {
-	_foo(path, data);
+	_foo(NULL, &foo);
 }
 
 static void
-_branch_bar( const char *path, LV2_OSC_Reader *reader __attribute__((unused)),
-	LV2_OSC_Arg *arg __attribute__((unused)), void *data)
+_branch_bar(LV2_OSC_Reader *reader __attribute__((unused)),
+	LV2_OSC_Arg *arg __attribute__((unused)),
+	const LV2_OSC_Tree *tree __attribute__((unused)),
+	void *data __attribute__((unused)))
 {
-	_bar(path, data);
+	_bar(NULL, &bar);
 }
 
 static LV2_OSC_Tree tree_sub [] = {
-	{ .name = "one", .branch = _branch_one, .data = &foo_sub_one },
-	{ .name = "two", .branch = _branch_two, .data = &foo_sub_two[0] },
-	{ .name = "two", .branch = _branch_two, .data = &foo_sub_two[1] },
+	{ .name = "one", .branch = _branch_one },
+	{ .name = "two", .branch = _branch_two },
+	{ .name = "two", .branch = _branch_two },
 	{ .name = NULL }
 };
 
 static LV2_OSC_Tree tree_root [] = {
-	{ .name = "foo", .branch = _branch_foo, .data = &foo },
-	{ .name = "bar", .branch = _branch_bar, .data = &bar },
+	{ .name = "foo", .branch = _branch_foo },
+	{ .name = "bar", .branch = _branch_bar },
 	{ .name = "sub", .trees = tree_sub },
 	{ .name = NULL }
 };
@@ -1103,7 +1135,7 @@ _run_test_hooks_internal(const char *path)
 		assert(len);
 
 		lv2_osc_reader_initialize(&reader, buf, len);
-		lv2_osc_reader_match(&reader, len, tree_root);
+		lv2_osc_reader_match(&reader, len, tree_root, NULL);
 	}
 
 	return true;
