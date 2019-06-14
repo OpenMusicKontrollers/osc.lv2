@@ -73,9 +73,10 @@ static const char valid_format_chars [] = {
 static bool
 lv2_osc_pattern_match(const char *from, const char *name, size_t len)
 {
+#if !defined(_WIN32)
 	size_t nbrace = 0;
 
-#if defined(FNM_EXTMATCH)
+#	if defined(FNM_EXTMATCH)
 	// count opening curly braces
 	for(size_t i = 0; i < len; i++)
 	{
@@ -84,7 +85,7 @@ lv2_osc_pattern_match(const char *from, const char *name, size_t len)
 			nbrace++;
 		}
 	}
-#endif
+#	endif
 
 	// allocate temporary pattern buffer
 	char *pattern = alloca(len + nbrace + 1);
@@ -94,7 +95,7 @@ lv2_osc_pattern_match(const char *from, const char *name, size_t len)
 		return false;
 	}
 
-#if defined(FNM_EXTMATCH)
+#	if defined(FNM_EXTMATCH)
 	// convert {x,y} to @(x|y) for extended fnmatch
 	if(nbrace)
 	{
@@ -125,7 +126,7 @@ lv2_osc_pattern_match(const char *from, const char *name, size_t len)
 		}
 	}
 	else
-#endif
+#	endif
 	{
 		memcpy(pattern, from, len);
 	}
@@ -133,10 +134,13 @@ lv2_osc_pattern_match(const char *from, const char *name, size_t len)
 	// terminate pattern string with null terminator
 	pattern[len + nbrace] = '\0';
 
-#if defined(FNM_EXTMATCH)
+#	if defined(FNM_EXTMATCH)
 	return fnmatch(pattern, name, FNM_NOESCAPE | FNM_EXTMATCH) == 0 ? true : false;
-#else
+#	else
 	return fnmatch(pattern, name, FNM_NOESCAPE) == 0 ? true : false;
+#	endif
+#else
+	return strncmp(from, name, len) == 0 ? true : false;
 #endif
 }
 

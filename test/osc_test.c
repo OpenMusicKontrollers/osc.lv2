@@ -931,6 +931,7 @@ static const pair_t pairs [] = {
 };
 #endif
 
+#if !defined(_WIN32)
 static void
 _one(const char *path, const LV2_Atom_Tuple *arguments __attribute__((unused)),
 	void *data)
@@ -1211,6 +1212,7 @@ _run_test_hooks()
 
 	return 0;
 }
+#endif
 
 int
 main(int argc __attribute__((unused)), char **argv __attribute__((unused)))
@@ -1222,8 +1224,10 @@ main(int argc __attribute__((unused)), char **argv __attribute__((unused)))
 	fprintf(stdout, "running main tests:\n");
 	assert(_run_tests() == 0);
 
+#if !defined(_WIN32)
 	fprintf(stdout, "running hook tests:\n");
 	assert(_run_test_hooks() == 0);
+#endif
 
 #if !defined(_WIN32)
 	for(const pair_t *pair = pairs; pair->server; pair++)
