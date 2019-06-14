@@ -23,7 +23,9 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fnmatch.h>
+#if !defined(_WIN32)
+# include <fnmatch.h>
+#endif
 
 #include <osc.lv2/osc.h>
 
