@@ -17,12 +17,11 @@
 @prefix doap: <http://usefulinc.com/ns/doap#> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix lic: <http://opensource.org/licenses/> .
 @prefix omk: <http://open-music-kontrollers.ch/ventosus#> .
 
 <http://open-music-kontrollers.ch/lv2/osc>
 	a doap:Project ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	doap:name "LV2 OSC" ;
 	doap:shortdesc "A definition of atomified OSC." ;
 	doap:maintainer omk:me ;
